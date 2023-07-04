@@ -1073,6 +1073,7 @@ class Trainer(object):
                             batches = num_to_groups(self.num_samples, self.batch_size)
                             all_images_list = list(map(lambda n: self.ema.ema_model.sample(batch_size=n), batches))
 
+                        all_images = torch.cat(all_images_list, dim=0)
                         nrow = int(self.num_samples ** 0.5)
                         wandb_img = to_wandb(all_images, rows=nrow,
                                              caption='DDPM' if not self.model.is_ddim_sampling else f'DDIM_{self.model.sampling_timesteps}')
