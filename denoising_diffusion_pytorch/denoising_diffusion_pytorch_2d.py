@@ -1159,7 +1159,7 @@ def create_argparser() -> ArgumentParser:
     parser.add_argument("--objective", default='pred_v', choices=['pred_noise', 'pred_x0', 'pred_v'], type=str,
                         help='The training objective for estimating the mean. Learned variance not supported.')
     parser.add_argument("--beta-schedule", default='sigmoid', type=str, choices=['linear', 'cosine', 'sigmoid'])
-    parser.add_argument("--ddim-sampling_eta", default=0.0, type=ranged_float, help="ETA for DDIM between 0.0 and 1.0")
+    parser.add_argument("--ddim-sampling-eta", default=0.0, type=ranged_float, help="ETA for DDIM between 0.0 and 1.0")
     parser.add_argument("--image-size", default=32, type=int, help="The size of the generated images")
 
     # Trainer Args
