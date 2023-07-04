@@ -1147,37 +1147,37 @@ def create_argparser() -> ArgumentParser:
     parser = ArgumentParser()
     # UNET Args
     parser.add_argument("--dim", default=64, type=int, help="The feature dimensions of the first convoltuion")
-    parser.add_argument("--dim_mults", default=(1, 2, 4, 8), type=tuple,
+    parser.add_argument("--dim-mults", default=(1, 2, 4, 8), type=tuple,
                         help="Feature multiplicators per layer")
-    parser.add_argument("--flash_attn", action="store_true", help="Use flash attention (memory-efficient)")
-    parser.add_argument("--full_attn", type=tuple, default=(False, True, False, False), help="Specifies in which layer"
+    parser.add_argument("--flash-attn", action="store_true", help="Use flash attention (memory-efficient)")
+    parser.add_argument("--full-attn", type=tuple, default=(False, True, False, False), help="Specifies in which layer"
                                                                                              "attention should be used")
 
     # Diffusion Args
     parser.add_argument("--timesteps", default=1000, type=int, help="Number of diffusion timesteps")
-    parser.add_argument("--sampling_timesteps", type=int, help="DDIM sampling timesteps if specified.")
+    parser.add_argument("--sampling-timesteps", type=int, help="DDIM sampling timesteps if specified.")
     parser.add_argument("--objective", default='pred_v', choices=['pred_noise', 'pred_x0', 'pred_v'], type=str,
                         help='The training objective for estimating the mean. Learned variance not supported.')
-    parser.add_argument("--beta_schedule", default='sigmoid', type=str, choices=['linear', 'cosine', 'sigmoid'])
-    parser.add_argument("--ddim_sampling_eta", default=0.0, type=ranged_float, help="ETA for DDIM between 0.0 and 1.0")
-    parser.add_argument("--image_size", default=32, type=int, help="The size of the generated images")
+    parser.add_argument("--beta-schedule", default='sigmoid', type=str, choices=['linear', 'cosine', 'sigmoid'])
+    parser.add_argument("--ddim-sampling_eta", default=0.0, type=ranged_float, help="ETA for DDIM between 0.0 and 1.0")
+    parser.add_argument("--image-size", default=32, type=int, help="The size of the generated images")
 
     # Trainer Args
-    parser.add_argument("--data_folder", default='/', type=str, help="Path to the folder with images")
+    parser.add_argument("--data-folder", default='/', type=str, help="Path to the folder with images")
     parser.add_argument("--dataset", default='cifar-10', type=str, help="Dataset to be used. Needs to match folder name")
-    parser.add_argument('--train_batch_size', default=128, type=int)
-    parser.add_argument("--gradient_accumulate_every", default=1, type=int, help="Gradient accumulation step size")
-    parser.add_argument("--train_lr", default=1e-4, type=float, help="Learning rate for training")
-    parser.add_argument("--train_num_steps", default=700000, type=int, help="Number of trainings steps")
-    parser.add_argument("--ema_update_every", default=10, type=int, help="Update rate for EMA")
-    parser.add_argument("--ema_decay", default=0.995, type=ranged_float, help="EMA decay rate")
-    parser.add_argument("--save_and_sample_every", default=1000, type=int, help="Step size for sampling.")
-    parser.add_argument("--num_samples", default=64, type=int, help="How many samples should be generated and saved")
-    parser.add_argument("--num_fid_samples", default=50000, type=int,
+    parser.add_argument('--train-batch-size', default=128, type=int)
+    parser.add_argument("--gradient-accumulate-every", default=1, type=int, help="Gradient accumulation step size")
+    parser.add_argument("--train-lr", default=1e-4, type=float, help="Learning rate for training")
+    parser.add_argument("--train-num-steps", default=700000, type=int, help="Number of trainings steps")
+    parser.add_argument("--ema-update-every", default=10, type=int, help="Update rate for EMA")
+    parser.add_argument("--ema-decay", default=0.995, type=ranged_float, help="EMA decay rate")
+    parser.add_argument("--save-and-sample-every", default=1000, type=int, help="Step size for sampling.")
+    parser.add_argument("--num-samples", default=64, type=int, help="How many samples should be generated and saved")
+    parser.add_argument("--num-fid-samples", default=50000, type=int,
                         help="Number of samples for FID calculation. Requires a lot to be robust (DDIM recommended).")
     parser.add_argument("--amp", action='store_true',
                         help='Mixed precision training for reduced computational footprint')
-    parser.add_argument("--results_folder", type=str, default='./', help="Where to store results")
+    parser.add_argument("--results-folder", type=str, default='./', help="Where to store results")
     parser.add_argument('--pid', default=0)
 
     return parser
