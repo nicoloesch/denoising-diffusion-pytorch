@@ -31,6 +31,10 @@ from denoising_diffusion_pytorch.version import __version__
 
 from argparse import ArgumentParser
 
+import wandb
+import random
+from datetime import datetime
+
 # constants
 
 ModelPrediction = namedtuple('ModelPrediction', ['pred_noise', 'pred_x_start'])
@@ -90,7 +94,22 @@ def normalize_to_neg_one_to_one(img):
 
 
 def unnormalize_to_zero_to_one(t):
-    return (t + 1) * 0.5
+    return (t + 1) * 0.
+
+def to_wandb(tensor: torch.Tensor, rows: int, caption: Optional[str] = None):
+    r"""Instead of having a 2x8 grid, we have a 4x4 grid in the logging"""
+    import torchvision
+    from PIL import Image
+
+    if hasattr(tensor, "requires_grad") and tensor.requires_grad:
+        tensor = tensor.detach()  # type: ignore
+
+    data = torchvision.utils.make_grid(tensor, normalize=True, nrow=rows, value_range=(-1, 1))
+    # Add 0.5 after unnormalizing to [0, 255] to round to nearest integer
+    image = Image.fromarray(
+        data.mul(255).add_(0.5).clamp(0, 255).byte().permute(1, 2, 0).cpu().numpy())
+
+    return wandb.Image(image, caption=caption)
 
 
 # small helper modules
@@ -1021,8 +1040,12 @@ class Trainer(object):
                     with self.accelerator.autocast():
                         loss = self.model(data)
                         loss = loss / self.gradient_accumulate_every
-                        total_loss += loss.item()
 
+
+                        total_loss += loss.item()
+                        if self.accelerator.is_main_process:
+                            wandb.log({'loss/train_step': loss}, step=self.step)
+                            wandb.log({'loss/total_loss': loss}, step=self.step)
                     self.accelerator.backward(loss)
 
                 accelerator.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
@@ -1047,15 +1070,18 @@ class Trainer(object):
                             batches = num_to_groups(self.num_samples, self.batch_size)
                             all_images_list = list(map(lambda n: self.ema.ema_model.sample(batch_size=n), batches))
 
-                        all_images = torch.cat(all_images_list, dim=0)
-
-                        utils.save_image(all_images, str(self.results_folder / f'sample-{milestone}.png'),
-                                         nrow=int(math.sqrt(self.num_samples)))
+                        nrow = int(self.num_samples ** 0.5)
+                        wandb_img = to_wandb(all_images, rows=nrow,
+                                             caption='DDPM' if not self.model.is_ddim_sampling else f'DDIM_{self.model.sampling_timesteps}')
+                        wandb.log({'Samples': wandb_img}, step=self.step)
+                        #utils.save_image(all_images, str(self.results_folder / f'sample-{milestone}.png'),
+                        #                 nrow=int(math.sqrt(self.num_samples)))
 
                         # whether to calculate fid
 
                         if self.calculate_fid:
                             fid_score = self.fid_scorer.fid_score()
+                            wandb.log({'FrechetInceptionDistance/train': fid_score}, step=self.step)
                             accelerator.print(f'fid_score: {fid_score}')
                         if self.save_best_and_latest_only:
                             if self.best_fid > fid_score:
@@ -1083,7 +1109,7 @@ def main(args):
                                   beta_schedule=args.beta_schedule,
                                   ddim_sampling_eta=args.ddim_sampling_eta)
     trainer = Trainer(diffusion_model=diffusion,
-                      folder=args.folder,
+                      folder=str(Path(args.data_folder, args.dataset, 'train')),
                       train_batch_size=args.train_batch_size,
                       train_lr=args.train_lr,
                       train_num_steps=args.train_num_steps,
@@ -1097,7 +1123,12 @@ def main(args):
                       num_samples=args.num_samples,
                       num_fid_samples=args.num_fid_samples)
 
-    print(args)
+    # Init Logger
+    timestamp = datetime.now().strftime("%Y-%m-%dT%H%M%S%f")
+    wandb_run = wandb.init(project=f'den-diff-pt_{args.dataset}', entity='nicoloesch',
+                           name=f'DDPM_{args.pid}_{str(timestamp)}')
+
+    trainer.train()
 
 
 def ranged_float(x: float):
@@ -1132,7 +1163,8 @@ def create_argparser() -> ArgumentParser:
     parser.add_argument("--image_size", default=32, type=int, help="The size of the generated images")
 
     # Trainer Args
-    parser.add_argument("--folder", default='/', type=str, help="Path to the folder with images")
+    parser.add_argument("--data_folder", default='/', type=str, help="Path to the folder with images")
+    parser.add_argument("--dataset", default='cifar-10', type=str, help="Dataset to be used. Needs to match folder name")
     parser.add_argument('--train_batch_size', default=128, type=int)
     parser.add_argument("--gradient_accumulate_every", default=1, type=int, help="Gradient accumulation step size")
     parser.add_argument("--train_lr", default=1e-4, type=float, help="Learning rate for training")
@@ -1146,6 +1178,7 @@ def create_argparser() -> ArgumentParser:
     parser.add_argument("--amp", action='store_true',
                         help='Mixed precision training for reduced computational footprint')
     parser.add_argument("--results_folder", type=str, default='./', help="Where to store results")
+    parser.add_argument('--pid', default=0)
 
     return parser
 
