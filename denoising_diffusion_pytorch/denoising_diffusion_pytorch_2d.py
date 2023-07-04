@@ -900,7 +900,8 @@ class Trainer(object):
             inception_block_idx=2048,
             max_grad_norm=1.,
             num_fid_samples=50000,
-            save_best_and_latest_only=False
+            save_best_and_latest_only=False,
+            log_every_n_steps=50
     ):
         super().__init__()
 
@@ -985,6 +986,7 @@ class Trainer(object):
                 num_fid_samples=num_fid_samples,
                 inception_block_idx=inception_block_idx
             )
+        self.log_every_n_steps = log_every_n_steps
 
     @property
     def device(self):
@@ -1044,7 +1046,7 @@ class Trainer(object):
 
 
                         total_loss += loss.item()
-                        if self.accelerator.is_main_process:
+                        if self.accelerator.is_main_process and self.log_every_n_steps % self.step == 0:
                             wandb.log({'loss/train_step': loss}, step=self.step)
                             wandb.log({'loss/total_loss': loss}, step=self.step)
                     self.accelerator.backward(loss)
@@ -1122,7 +1124,8 @@ def main(args):
                       ema_update_every=args.ema_update_every,
                       save_and_sample_every=args.save_and_sample_every,
                       num_samples=args.num_samples,
-                      num_fid_samples=args.num_fid_samples)
+                      num_fid_samples=args.num_fid_samples,
+                      log_every_n_steps=args.log_every_n_steps)
 
     # Init Logger
     timestamp = datetime.now().strftime("%Y-%m-%dT%H%M%S%f")
@@ -1178,6 +1181,7 @@ def create_argparser() -> ArgumentParser:
                         help="Number of samples for FID calculation. Requires a lot to be robust (DDIM recommended).")
     parser.add_argument("--amp", action='store_true',
                         help='Mixed precision training for reduced computational footprint')
+    parser.add_argument('--log_every_n_steps', default=50, type=int, help="Reduce logging frequency.")
     parser.add_argument("--results-folder", type=str, default='./', help="Where to store results")
     parser.add_argument('--pid', default=0)
 
