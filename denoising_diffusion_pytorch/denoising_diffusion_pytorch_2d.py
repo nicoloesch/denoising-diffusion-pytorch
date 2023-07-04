@@ -1131,7 +1131,8 @@ def main(args):
     # Init Logger
     timestamp = datetime.now().strftime("%Y-%m-%dT%H%M%S%f")
     wandb_run = wandb.init(project=f'den-diff-pt_{args.dataset}', entity='nicoloesch',
-                           name=f'DDPM_{args.pid}_{str(timestamp)}')
+                           name=f'DDPM_{args.pid}_{str(timestamp)}',
+                           config=args)
 
     trainer.train()
 
