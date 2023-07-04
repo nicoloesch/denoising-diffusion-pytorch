@@ -1046,7 +1046,7 @@ class Trainer(object):
 
 
                         total_loss += loss.item()
-                        if self.accelerator.is_main_process and self.log_every_n_steps % self.step == 0:
+                        if self.accelerator.is_main_process and self.log_every_n_steps % (self.step + 1) == 0:
                             wandb.log({'loss/train_step': loss}, step=self.step)
                             wandb.log({'loss/total_loss': loss}, step=self.step)
                     self.accelerator.backward(loss)
