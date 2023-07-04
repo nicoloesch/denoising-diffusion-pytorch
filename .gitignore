@@ -133,3 +133,6 @@ dmypy.json
 
 # PYcharm specific
 .idea/*
+
+# wandb
+.denoising_diffusion_pytorch/wandb/*
