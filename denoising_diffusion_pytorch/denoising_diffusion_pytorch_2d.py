@@ -5,6 +5,7 @@ from random import random
 from functools import partial
 from collections import namedtuple
 from multiprocessing import cpu_count
+from typing import Optional
 
 import torch
 from torch import nn, einsum
@@ -1147,7 +1148,7 @@ def create_argparser() -> ArgumentParser:
     parser = ArgumentParser()
     # UNET Args
     parser.add_argument("--dim", default=64, type=int, help="The feature dimensions of the first convoltuion")
-    parser.add_argument("--dim-mults", default=(1, 2, 4, 8), type=tuple,
+    parser.add_argument("--dim-mults", nargs='+', type=int,
                         help="Feature multiplicators per layer")
     parser.add_argument("--flash-attn", action="store_true", help="Use flash attention (memory-efficient)")
     parser.add_argument("--full-attn", type=tuple, default=(False, True, False, False), help="Specifies in which layer"
