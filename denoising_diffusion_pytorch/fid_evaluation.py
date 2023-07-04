@@ -95,7 +95,7 @@ class FIDEvaluation:
         self.print_fn(
             f"Stacking Inception features for {self.n_samples} generated samples."
         )
-        for batch in tqdm(batches):
+        for batch in tqdm(batches, desc='FID Score evaluation', total=len(batches)):
             fake_samples = self.sampler.sample(batch_size=batch)
             fake_features = self.calculate_inception_features(fake_samples)
             stacked_fake_features.append(fake_features)
