@@ -1048,8 +1048,9 @@ class Trainer(object):
 
                         total_loss += loss.item()
                         if self.accelerator.is_main_process and self.log_every_n_steps % (self.step + 1) == 0:
-                            wandb.log({'loss/train_step': loss}, step=self.step)
-                            wandb.log({'loss/total_loss': loss}, step=self.step)
+                            if wandb.run is not None:
+                                wandb.log({'loss/train_step': loss}, step=self.step)
+                                wandb.log({'loss/total_loss': loss}, step=self.step)
                     self.accelerator.backward(loss)
 
                 accelerator.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
@@ -1078,7 +1079,8 @@ class Trainer(object):
                         nrow = int(self.num_samples ** 0.5)
                         wandb_img = to_wandb(all_images, rows=nrow,
                                              caption='DDPM' if not self.model.is_ddim_sampling else f'DDIM_{self.model.sampling_timesteps}')
-                        wandb.log({'Samples': wandb_img}, step=self.step)
+                        if wandb.run is not None:
+                            wandb.log({'Samples': wandb_img}, step=self.step)
                         #utils.save_image(all_images, str(self.results_folder / f'sample-{milestone}.png'),
                         #                 nrow=int(math.sqrt(self.num_samples)))
 
@@ -1086,7 +1088,8 @@ class Trainer(object):
 
                         if self.calculate_fid:
                             fid_score = self.fid_scorer.fid_score()
-                            wandb.log({'FrechetInceptionDistance/train': fid_score}, step=self.step)
+                            if wandb.run is not None:
+                                wandb.log({'FrechetInceptionDistance/train': fid_score}, step=self.step)
                             accelerator.print(f'fid_score: {fid_score}')
                         if self.save_best_and_latest_only:
                             if self.best_fid > fid_score:
@@ -1131,9 +1134,10 @@ def main(args):
 
     # Init Logger
     timestamp = datetime.now().strftime("%Y-%m-%dT%H%M%S%f")
-    wandb_run = wandb.init(project=f'den-diff-pt_{args.dataset}', entity='nicoloesch',
-                           name=f'DDPM_{args.pid}_{str(timestamp)}',
-                           config=args)
+    if args.logger:
+        wandb_run = wandb.init(project=f'den-diff-pt_{args.dataset}', entity='nicoloesch',
+                            name=f'DDPM_{args.pid}_{str(timestamp)}',
+                            config=args)
 
     trainer.train()
 
@@ -1187,6 +1191,7 @@ def create_argparser() -> ArgumentParser:
     parser.add_argument('--log_every_n_steps', default=50, type=int, help="Reduce logging frequency.")
     parser.add_argument("--results-folder", type=str, default='./', help="Where to store results")
     parser.add_argument('--pid', default=0)
+    parser.add_argument('--logger', default=True, type=bool, help="Whether to use wandb for logging")
 
     return parser
 
