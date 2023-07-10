@@ -5,7 +5,7 @@ from random import random
 from functools import partial
 from collections import namedtuple
 from multiprocessing import cpu_count
-from typing import Optional
+from typing import Optional, Tuple
 
 import torch
 from torch import nn, einsum
@@ -95,9 +95,12 @@ def normalize_to_neg_one_to_one(img):
 
 
 def unnormalize_to_zero_to_one(t):
-    return (t + 1) * 0.
+    return (t + 1) * 0.5
 
-def to_wandb(tensor: torch.Tensor, rows: int, caption: Optional[str] = None):
+def to_wandb(tensor: torch.Tensor, 
+             rows: int, 
+             caption: Optional[str] = None, 
+             value_range: Tuple[int, int] = (0, 1)):
     r"""Instead of having a 2x8 grid, we have a 4x4 grid in the logging"""
     import torchvision
     from PIL import Image
@@ -105,7 +108,7 @@ def to_wandb(tensor: torch.Tensor, rows: int, caption: Optional[str] = None):
     if hasattr(tensor, "requires_grad") and tensor.requires_grad:
         tensor = tensor.detach()  # type: ignore
 
-    data = torchvision.utils.make_grid(tensor, normalize=True, nrow=rows, value_range=(-1, 1))
+    data = torchvision.utils.make_grid(tensor, normalize=True, nrow=rows, value_range=value_range)
     # Add 0.5 after unnormalizing to [0, 255] to round to nearest integer
     image = Image.fromarray(
         data.mul(255).add_(0.5).clamp(0, 255).byte().permute(1, 2, 0).cpu().numpy())
@@ -1076,8 +1079,10 @@ class Trainer(object):
                             all_images_list = list(map(lambda n: self.ema.ema_model.sample(batch_size=n), batches))
 
                         all_images = torch.cat(all_images_list, dim=0)
+                        value_range = (-1,1) if self.model.unnormalize is identity else (0,1)
                         nrow = int(self.num_samples ** 0.5)
                         wandb_img = to_wandb(all_images, rows=nrow,
+                                             value_range=value_range,
                                              caption='DDPM' if not self.model.is_ddim_sampling else f'DDIM_{self.model.sampling_timesteps}')
                         if wandb.run is not None:
                             wandb.log({'Samples': wandb_img}, step=self.step)
