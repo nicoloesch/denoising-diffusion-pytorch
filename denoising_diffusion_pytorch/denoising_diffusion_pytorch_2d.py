@@ -1191,7 +1191,7 @@ def create_argparser() -> ArgumentParser:
     parser.add_argument('--log_every_n_steps', default=50, type=int, help="Reduce logging frequency.")
     parser.add_argument("--results-folder", type=str, default='./', help="Where to store results")
     parser.add_argument('--pid', default=0)
-    parser.add_argument('--logger', default=True, type=bool, help="Whether to use wandb for logging")
+    parser.add_argument('--logger', action="store_true", help="Whether to use wandb for logging")
 
     return parser
 
